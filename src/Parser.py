@@ -1,6 +1,6 @@
 from tika import parser as tikaparser
-import Categorizer
-import config_file
+from src import config_file, Categorizer
+
 
 class Parser:
     def __init__(self):

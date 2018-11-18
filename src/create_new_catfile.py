@@ -1,10 +1,8 @@
-import config_file
+from src import config_file
 import csv
 
-outfile = '/Users/mayankgupta/Documents/Budget/Categories_all_NEW.csv'
-
 infile = open(config_file.old_category_file, 'r')
-ofile = open(outfile, 'w+')
+ofile = open(config_file.category_file, 'w+')
 writer = csv.writer(ofile, delimiter=';')
 
 for line in infile.readlines():

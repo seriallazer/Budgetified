@@ -1,5 +1,6 @@
 import csv
-import config_file
+from src import config_file
+
 
 class Categorizer:
     def __init__(self):
