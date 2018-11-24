@@ -5,16 +5,16 @@ import config_file
 import parser_engine
 import os
 from glob import glob
-import sys
+from operator import itemgetter
 
 class Aggregator:
-    def __init__(self, logger = None):
+    def __init__(self, recategorize = True, logger = None):
         if logger is None:
             logfile = os.getcwd() + "/aggregator.logs"
             self.logger = open(logfile, 'w')
         else:
             self.logger = logger
-        self.pdf_parser = parser_engine.Parser(self.logger)
+        self.pdf_parser = parser_engine.Parser(recategorize, self.logger)
 
     def load_transactions_from_datafile(self, datafile):
         account_transactions: List[Dict[str, str]] = []
@@ -24,7 +24,7 @@ class Aggregator:
             return account_transactions
         dfile = open(datafile, 'r')
         for line in dfile.readlines():
-            tokens = line.split(';')
+            tokens = line.strip('\n').split(';')
             transaction_block = dict(zip(config_file.transaction_template, tokens))
             account_transactions.append(transaction_block)
         return account_transactions
@@ -33,13 +33,16 @@ class Aggregator:
         pdf_basename = pdf_stmt.split('/')[-1]
         new_pdfstmt_loc = account_archive_dir + "/" + pdf_basename
         os.rename(pdf_stmt, new_pdfstmt_loc)
-        self.logger.write("[Aggregator] Moved %s to %s" % (pdf_stmt, new_pdfstmt_loc))
+        self.logger.write("[Aggregator] Moved %s to %s \n" % (pdf_stmt, new_pdfstmt_loc))
 
     def write_transactions(self, all_transactions, account_datafile):
         sorted_transactions = sorted(all_transactions, key=itemgetter('date'))
         twriter = open(account_datafile, 'w')
         for block in sorted_transactions:
-            twriter.write(config_file.writer_format.format(block['date'], block['desc'], block['tval'], block['origin'], block['category'], block['balance'], block['hashid']))
+            #twriter.write(config_file.writer_format.format(block['date'], block['desc'], block['tval'], block['origin'], block['category'], block['balance'], block['hashid']))
+            block_str = ';'.join(block.values())
+            twriter.write(block_str + '\n')
+
 
     def parse_account_dir(self, account_dir):
         tokens = account_dir.split('/')
@@ -76,10 +79,10 @@ arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--parse_all_statements', default=False, type=bool, help='Parse all statements in Accounts subdirs')
 arg_parser.add_argument('--parse_account_statements', help='Parse only the given account')
 arg_parser.add_argument('--super_dir', default=config_file.default_accounts_dir, help='Budgetified parsing_dir')
+arg_parser.add_argument('--recategorize', default=True, help='Only use to say not to recategorize')
 
 args = arg_parser.parse_args()
-aggregator = Aggregator()
-print(args.super_dir)
+aggregator = Aggregator(args.recategorize)
 
 if args.parse_all_statements:
     aggregator.parse_super_dir(args.super_dir)

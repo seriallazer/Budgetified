@@ -14,11 +14,14 @@ default_income_category = 'Income|Misc'
 default_expense_category = 'Expenses|Misc'
 
 transaction_template = ['date', 'desc', 'tval', 'origin', 'category', 'balance', 'hashid']
-writer_format = '%d ; %-100s ; %10s ; %30s ; %50s ; %10s ; %30s'
+writer_format = '%d ; %-100s ; %10s ; %30s ; %50s ; %10s ; %30s \n'
+approved_sign = 'A'
 
+def is_default_category(category_desc):
+    return (category_desc == default_expense_category) | (category_desc == default_income_category)
 
 def get_default_category(val):
-    if val > 0:
+    if float(val) > 0:
         return default_income_category
     return default_expense_category
 

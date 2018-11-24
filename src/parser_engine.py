@@ -4,13 +4,13 @@ import os
 import hashlib
 
 class Parser:
-    def __init__(self, logger = None):
-        self.categorizer = categorizer.Categorizer();
+    def __init__(self, recategorize = True, logger = None):
         if logger is None:
             logfile = os.getcwd() + "/parser.logs"
             self.logger = open(logfile, 'w')
         else:
             self.logger = logger
+        self.categorizer = categorizer.Categorizer(recategorize, logger);
 
     def is_number(self, s):
         try:
@@ -22,7 +22,7 @@ class Parser:
     def get_pdf_content(self, path):
         raw = tikaparser.from_file(path)
         pdf_text = raw['content']
-        self.logger.write("[Parser] Pdf-data extracted for: " + path)
+        self.logger.write("[Parser] Pdf-data extracted for: %s \n" % (path))
         return pdf_text
 
     def parse_identifier(self, type, line):
@@ -37,7 +37,7 @@ class Parser:
         hash_object = hashlib.md5(transaction_str.encode())
         return hash_object.hexdigest()
 
-    def parse_statement(self, path, origin):
+    def parse_statement(self, path, type):
         pdf_text = self.get_pdf_content(path)
         start_parsing = False
         year = "2018"
@@ -52,17 +52,18 @@ class Parser:
             # print("try ||",start_parsing,"||",tokens[0],"||",tokens[1],"||",self.is_number(tokens[-1]))
             if type == 'DBS_CREDIT' and start_parsing and (tokens[1] in config_file.Months) and tokens[
                 0].isnumeric() and (self.is_number(tokens[-1]) or tokens[-1] == 'CR') and token_size > 3:
-                date = int(year + config_file.Months[tokens[1]] + tokens[0].zfill(2))
+                date = year + config_file.Months[tokens[1]] + tokens[0].zfill(2)
                 val_col = -1
-                transaction_val = float(tokens[-1])
+                transaction_val = tokens[-1]
                 if tokens[-1] == 'CR':
                     val_col = -2
-                    transaction_val = -1 * float(tokens[-2])
+                    transaction_val = str(-1 * float(tokens[-2]))
                 desc = ' '.join(tokens[2:val_col])
                 balance = 'NA'
-                category = self.categorizer.get_category_mapping(desc, -1 * transaction_val)
-                transaction_details = [date, desc, transaction_val, origin, category, balance]
-                hashid = self.create_transaction_hash(transaction_details)
+                float_tval = float(transaction_val)
+                category = self.categorizer.get_category_mapping(desc, -1 * float_tval)
+                transaction_details = [date, desc, transaction_val, type, category, balance]
+                hashid = self.create_transaction_hashid(transaction_details)
                 #assert isinstance(hashid, object)
                 transaction_details.append(hashid)
                 expense = dict(zip(config_file.transaction_template, transaction_details))
