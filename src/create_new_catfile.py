@@ -1,4 +1,4 @@
-from src import config_file
+import config_file
 import csv
 
 infile = open(config_file.old_category_file, 'r')

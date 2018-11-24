@@ -1,5 +1,5 @@
 import csv
-from src import config_file
+import config_file
 
 
 class Categorizer:

@@ -1,6 +1,7 @@
 from tika import parser as tikaparser
-from src import config_file, categorizer
+import config_file, categorizer
 import os
+import hashlib
 
 class Parser:
     def __init__(self, logger = None):
@@ -31,11 +32,16 @@ class Parser:
             return True
         return False
 
+    def create_transaction_hashid(self, transaction):
+        transaction_str = str(transaction)
+        hash_object = hashlib.md5(transaction_str.encode())
+        return hash_object.hexdigest()
+
     def parse_statement(self, path, origin):
         pdf_text = self.get_pdf_content(path)
         start_parsing = False
         year = "2018"
-        transactions = []
+        stmt_transactions = []
 
         for line in pdf_text.splitlines():
             tokens = line.strip().split()
@@ -53,20 +59,16 @@ class Parser:
                     val_col = -2
                     transaction_val = -1 * float(tokens[-2])
                 desc = ' '.join(tokens[2:val_col])
+                balance = 'NA'
                 category = self.categorizer.get_category_mapping(desc, -1 * transaction_val)
                 transaction_details = [date, desc, transaction_val, origin, category, balance]
-                hashid = create_transaction_hash
-                assert isinstance(hashid, object)
+                hashid = self.create_transaction_hash(transaction_details)
+                #assert isinstance(hashid, object)
                 transaction_details.append(hashid)
                 expense = dict(zip(config_file.transaction_template, transaction_details))
-                transactions.append(expense)
+                stmt_transactions.append(expense)
 
             if not start_parsing:
                 start_parsing = self.parse_identifier(type, line)
 
-        return transactions
-
-
-parser = Parser()
-transactions = parser.parse_statement('/Users/mayankgupta/Downloads/dbs_credit_nov.pdf', 'DBS_CREDIT')
-print(transactions)
+        return stmt_transactions
