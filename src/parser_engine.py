@@ -1,10 +1,15 @@
 from tika import parser as tikaparser
-from src import config_file, Categorizer
-
+from src import config_file, categorizer
+import os
 
 class Parser:
-    def __init__(self):
-        self.categorizer = Categorizer.Categorizer();
+    def __init__(self, logger = None):
+        self.categorizer = categorizer.Categorizer();
+        if logger is None:
+            logfile = os.getcwd() + "/parser.logs"
+            self.logger = open(logfile, 'w')
+        else:
+            self.logger = logger
 
     def is_number(self, s):
         try:
@@ -16,6 +21,7 @@ class Parser:
     def get_pdf_content(self, path):
         raw = tikaparser.from_file(path)
         pdf_text = raw['content']
+        self.logger.write("[Parser] Pdf-data extracted for: " + path)
         return pdf_text
 
     def parse_identifier(self, type, line):
@@ -25,7 +31,7 @@ class Parser:
             return True
         return False
 
-    def parse_statement(self, path, type):
+    def parse_statement(self, path, origin):
         pdf_text = self.get_pdf_content(path)
         start_parsing = False
         year = "2018"
@@ -37,8 +43,9 @@ class Parser:
             if token_size <= 3:
                 continue
 
-            #print("try ||",start_parsing,"||",tokens[0],"||",tokens[1],"||",self.is_number(tokens[-1]))
-            if type == 'DBS_CREDIT' and start_parsing and (tokens[1] in config_file.Months) and tokens[0].isnumeric() and (self.is_number(tokens[-1]) or tokens[-1] == 'CR') and token_size > 3:
+            # print("try ||",start_parsing,"||",tokens[0],"||",tokens[1],"||",self.is_number(tokens[-1]))
+            if type == 'DBS_CREDIT' and start_parsing and (tokens[1] in config_file.Months) and tokens[
+                0].isnumeric() and (self.is_number(tokens[-1]) or tokens[-1] == 'CR') and token_size > 3:
                 date = int(year + config_file.Months[tokens[1]] + tokens[0].zfill(2))
                 val_col = -1
                 transaction_val = float(tokens[-1])
@@ -47,7 +54,11 @@ class Parser:
                     transaction_val = -1 * float(tokens[-2])
                 desc = ' '.join(tokens[2:val_col])
                 category = self.categorizer.get_category_mapping(desc, -1 * transaction_val)
-                expense = {'date': date, 'desc': desc, 'tval': transaction_val, 'type' : type, 'category': category}
+                transaction_details = [date, desc, transaction_val, origin, category, balance]
+                hashid = create_transaction_hash
+                assert isinstance(hashid, object)
+                transaction_details.append(hashid)
+                expense = dict(zip(config_file.transaction_template, transaction_details))
                 transactions.append(expense)
 
             if not start_parsing:
